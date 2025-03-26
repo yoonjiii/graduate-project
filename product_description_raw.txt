@@ -1,0 +1,91 @@
+```json
+{
+  "product_name": "킬 커버 메쉬 글로우 에센셜 쿠션",
+  "launch_info": {
+    "promotion": "올리브영 단독 기획",
+    "gift": "듀치크 증정",
+    "set_contents": {
+      "cushion": "본품 1EA",
+      "refill": "리필 1EA",
+      "blush": "듀치크 1EA"
+    },
+    "limited_quantity": true
+  },
+  "key_features": [
+    {
+      "feature": "수분결광연출",
+      "description": "스킨케어한 듯 수분 커버"
+    },
+    {
+      "feature": "초밀착커버",
+      "description": "숨쉬듯 가벼운 사용감"
+    },
+    {
+      "feature": "피부결 개선",
+      "description": "24시간 피부결 개선 및 수분광택감 지속"
+    }
+  ],
+  "texture": {
+    "type": "가벼운 텍스처",
+    "benefits": [
+      "편안한 글로우",
+      "자연스러운 피부 표현"
+    ]
+  },
+  "ingredients": {
+    "key_components": [
+      "히알루론산",
+      "프로필렌글라이콜다이벤조에이트",
+      "트라이메틸실록시실리케이트",
+      "글리세릴베헤네이트"
+    ],
+    "additional_info": "저분자 및 고분자 히알루론산 8종 포함"
+  },
+  "color_options": {
+    "available_shades": [
+      {
+        "shade_name": "19C 라이트",
+        "description": "화사한 쿨피부 추천"
+      },
+      {
+        "shade_name": "19N 포슬린",
+        "description": "화사한 뉴트럴톤 피부 추천"
+      },
+      {
+        "shade_name": "21C 란제리",
+        "description": "자연스러운 쿨피부 추천"
+      },
+      {
+        "shade_name": "21N 리넨",
+        "description": "자연스러운 뉴트럴톤"
+      },
+      {
+        "shade_name": "23N 진저",
+        "description": "건강하고 자연스러운 뉴트럴톤 피부"
+      }
+    ]
+  },
+  "application_tips": [
+    "메쉬망이 내용물을 걸러주므로 적은 양으로도 커버력과 수분광을 연출할 수 있습니다.",
+    "기존의 킬커버 쿠션들과 호환 가능합니다."
+  ],
+  "packaging": {
+    "shape": "사각 쉐입 케이스",
+    "puff": {
+      "type": "물방울 쉐입 퍼프",
+      "features": [
+        "넓은 면과 좁은 면을 쉽게 커버",
+        "안정적인 스트랩"
+      ]
+    }
+  },
+  "customer_inquiries": {
+    "mesh_distortion": "메쉬가 주름질 수 있으나 이는 자연스러운 현상입니다.",
+    "product_leakage": "내용물 위에 메쉬가 한 겹 덮여 있는 형태로, 자연스러운 현상입니다."
+  },
+  "clinical_tests": {
+    "duration": "24시간",
+    "results": "수분광택감 지속 확인"
+  }
+}
+```
