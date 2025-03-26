@@ -7,6 +7,13 @@ from io import BytesIO
 import requests
 from paddleocr import PaddleOCR, draw_ocr
 import numpy as np
+from dotenv import load_dotenv
+load_dotenv()
+from openai import OpenAI
+
+client = OpenAI(
+  api_key=os.getenv("OPENAI_API_KEY"),
+)
 
 font_path = "fonts/NotoSansKR-Regular.ttf"
 
@@ -188,6 +195,7 @@ def extract_text(dirname, min_height = 18, draw_vis = True):
 
     with open("ocr_results.json", "w", encoding="utf-8") as f:
         json.dump(full_description, f, ensure_ascii=False, indent=4)
+    return full_description
 
 # 이미지별로 공백을 두고 텍스트 join.
 def token_join(product_detail):
@@ -196,6 +204,48 @@ def token_join(product_detail):
         if len(tokens) > 0 :
             full_description[image] = " ".join(tokens)
     return full_description
+
+def gpt_summarize(full_description):
+    text = ""
+    for k, v in full_description.items():
+        text += v + " "
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages = [
+            {
+                "role": "system",
+                "content": "당신은 화장품 상세 정보 이미지 배너에서 OCR로 추출된 정보를 기반으로 텍스트 설명을 제작하는 전문가입니다."
+            },
+            {
+                "role": "user",
+                "content": f"""
+                    다음은 화장품 상세 설명입니다. 정보성있는 결과로 정리 및 구조화한 후, json형식으로 답변을 제공해주세요.
+                    {text}
+                    """
+            }
+        ],
+        temperature=0.5
+    )
+
+    reply = response.choices[0].message.content
+
+    # 코드 블록 마크다운 제거
+    if reply.startswith("```json"):
+        reply = reply.lstrip("```json").strip()
+    if reply.endswith("```"):
+        reply = reply.rstrip("```").strip()
+    
+    print(reply)
+
+    try:
+        json_result = json.loads(reply)
+        with open("product_description.json", "w", encoding="utf-8") as f:
+            json.dump(json_result, f, ensure_ascii=False, indent=4)
+        print(f"응답이 JSON 파일로 저장되었습니다.")
+    except json.JSONDecodeError as e:
+        with open("product_description_raw.txt", "w", encoding="utf-8") as f:
+            f.write(reply)
+        print(f"응답이 TXT 파일로 저장되었습니다.")
 
 def main():
     # full_dataset은 product의 list
@@ -214,9 +264,13 @@ def main():
     if accepted:
         # Data preprocissing
         #combine_crop_images(product, product_N)
-        # download_images(product, product_N)
+        #download_images(product, product_N)
         # extract_text
-        extract_text(product_N)
+        #full_description = extract_text(product_N)
+
+        with open("ocr_results.json", "r") as f:
+            full_description = json.load(f)
+        gpt_summarize(full_description)
     else:
         print("데이터 먼저 정리해주세요.")
         
