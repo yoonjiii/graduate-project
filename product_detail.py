@@ -10,6 +10,10 @@ import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 from openai import OpenAI
+from keybert import KeyBERT
+from transformers import BertModel
+from kiwipiepy import Kiwi
+kiwi = Kiwi()
 
 client = OpenAI(
   api_key=os.getenv("OPENAI_API_KEY"),
@@ -154,14 +158,14 @@ def extract_text(dirname, min_height = 18, draw_vis = True):
     for filename in sorted(os.listdir(dirname)):
         if filename.lower().endswith(('.jpg', '.jpeg', '.png')):
             filepath = os.path.join(dirname, filename)
-            print(f"🔍 Processing: {filename}")
+            print(f"Processing: {filename}")
 
             try:
                 ocr_result = ocr.ocr(filepath, cls=False)
                 texts = []
                 boxes = []
                 scores = []
-
+                
                 if ocr_result and isinstance(ocr_result[0], list):
                     for box, (text, score) in ocr_result[0]:
                         y_coords = [pt[1] for pt in box]
@@ -172,7 +176,7 @@ def extract_text(dirname, min_height = 18, draw_vis = True):
                             boxes.append(box)
                             scores.append(score)
                         else:
-                            print(f"🔸 Skipped small text: '{text}' (height={height})")
+                            print(f"Skipped small text: '{text}' (height={height})")
                 
                 original_filename = filename.split("_")[0]
                 if original_filename in results :
@@ -247,6 +251,31 @@ def gpt_summarize(full_description):
             f.write(reply)
         print(f"응답이 TXT 파일로 저장되었습니다.")
 
+def split_sentences(text):
+    return [s.text.strip() for s in kiwi.split_into_sents(text)]
+
+def keyword_extraction(full_description):
+    model = BertModel.from_pretrained('skt/kobert-base-v1')
+    kw_model = KeyBERT(model)
+
+    keywords_by_image = {}
+    for image_id, text in full_description.items():
+        text = split_sentences(text)
+        print(text)
+
+        keywords = kw_model.extract_keywords(
+            text,
+            keyphrase_ngram_range=(1, 2),
+            stop_words=None,
+            top_n=10
+        )
+        keywords_by_image[image_id] = [kw[0] for kw in keywords]
+        
+    with open("keywords_by_image.json", "w", encoding="utf-8") as f:
+        json.dump(keywords_by_image, f, ensure_ascii=False, indent=4)
+
+
+
 def main():
     # full_dataset은 product의 list
     # product 하나는 dictionary
@@ -270,7 +299,9 @@ def main():
 
         with open("ocr_results.json", "r") as f:
             full_description = json.load(f)
-        gpt_summarize(full_description)
+
+        keyword_extraction(full_description)
+        #gpt_summarize(full_description)
     else:
         print("데이터 먼저 정리해주세요.")
         
