@@ -5,7 +5,7 @@ import re
 from PIL import Image, ImageFont
 from io import BytesIO
 import requests
-from paddleocr import PaddleOCR, draw_ocr
+#from paddleocr import PaddleOCR, draw_ocr
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
@@ -339,7 +339,8 @@ def main():
             full_description = json.load(f)
 
         #gpt_summarize(full_description)
-        keywords = gpt_highlighted_subjects(full_description)
+        #keywords = gpt_highlighted_subjects(full_description)
+        keywords = ['수분광택', '초밀착커버', '스킨케어 효과', '다양한 컬러', '가벼운 텍스처', '지속력', '편리한 사용']
         if keywords:
             gpt_analyze_review(product['reviews'], keywords)
 
