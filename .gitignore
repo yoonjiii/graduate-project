@@ -1,4 +1,5 @@
 .env
 venv
+venv_310
 combined_images
 archieve

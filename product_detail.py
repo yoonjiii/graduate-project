@@ -10,10 +10,6 @@ import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 from openai import OpenAI
-from keybert import KeyBERT
-from transformers import BertModel
-from kiwipiepy import Kiwi
-kiwi = Kiwi()
 
 client = OpenAI(
   api_key=os.getenv("OPENAI_API_KEY"),
@@ -251,30 +247,72 @@ def gpt_summarize(full_description):
             f.write(reply)
         print(f"응답이 TXT 파일로 저장되었습니다.")
 
-def split_sentences(text):
-    return [s.text.strip() for s in kiwi.split_into_sents(text)]
+def gpt_highlighted_subjects(full_description):
+    text = ""
+    for k, v in full_description.items():
+        text += v + " "
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages = [
+            {
+                "role": "system",
+                "content": "당신은 화장품 상세 정보 이미지 배너에서 OCR로 추출된 정보를 기반으로 텍스트 설명을 제작하는 전문가입니다."
+            },
+            {
+                "role": "user",
+                "content": f"""
+                    다음은 화장품 제품 설명입니다. 제조사가 강조하고 있는 주요 기능이나 효과를 주제 단위로 정리해주세요.  
+                    각 주제는 아래의 JSON 구조를 따라 출력해주세요:
 
-def keyword_extraction(full_description):
-    model = BertModel.from_pretrained('skt/kobert-base-v1')
-    kw_model = KeyBERT(model)
+                    출력 형식 예시:
+                    {{
+                    "features": [
+                        {{
+                        "keyword": "string",
+                        "description": "string"
+                        }},
+                        ...
+                    ]
+                    }}
 
-    keywords_by_image = {}
-    for image_id, text in full_description.items():
-        text = split_sentences(text)
-        print(text)
+                    조건:
+                    - "키워드"는 한 단어 또는 짧은 문구로 간결하게
+                    - "설명"은 해당 키워드가 제품에서 의미하는 기능이나 효과를 구체적으로 설명
+                    - 4~7개의 주제를 제안해주세요
 
-        keywords = kw_model.extract_keywords(
-            text,
-            keyphrase_ngram_range=(1, 2),
-            stop_words=None,
-            top_n=10
-        )
-        keywords_by_image[image_id] = [kw[0] for kw in keywords]
-        
-    with open("keywords_by_image.json", "w", encoding="utf-8") as f:
-        json.dump(keywords_by_image, f, ensure_ascii=False, indent=4)
+                    제품 설명:
+                    {text}
+                    """
+            }
+        ],
+        temperature=0.5
+    )
 
+    reply = response.choices[0].message.content
+    # 코드 블록 마크다운 제거
+    if reply.startswith("```json"):
+        reply = reply.lstrip("```json").strip()
+    if reply.endswith("```"):
+        reply = reply.rstrip("```").strip()
+    
+    #print(reply)
 
+    try:
+        json_result = json.loads(reply)
+        with open("highlighted_subjects.json", "w", encoding="utf-8") as f:
+            json.dump(json_result, f, ensure_ascii=False, indent=4)
+        print(f"응답이 JSON 파일로 저장되었습니다.")
+
+        keywords = [item['keyword'] for item in json_result.get('features', [])]
+        return keywords
+    except json.JSONDecodeError as e:
+        with open("highlighted_subjects.txt", "w", encoding="utf-8") as f:
+            f.write(reply)
+        print(f"GPT의 요약 응답이 JSON 형식에 맞지 않아, 리뷰 분석을 수행할 수 없습니다.")
+        return None
+
+def gpt_analyze_review(reviews, keywords):
+    print(keywords)
 
 def main():
     # full_dataset은 product의 list
@@ -300,8 +338,11 @@ def main():
         with open("ocr_results.json", "r") as f:
             full_description = json.load(f)
 
-        keyword_extraction(full_description)
         #gpt_summarize(full_description)
+        keywords = gpt_highlighted_subjects(full_description)
+        if keywords:
+            gpt_analyze_review(product['reviews'], keywords)
+
     else:
         print("데이터 먼저 정리해주세요.")
         
