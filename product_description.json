@@ -1,89 +1,98 @@
 {
-  "product_name": "킬 커버 메쉬 글로우 에센셜 쿠션",
-  "launch_info": {
-    "promotion": "올리브영 단독 기획",
-    "gift": "듀치크 증정",
-    "set_contents": {
-      "cushion": "본품 1EA",
-      "refill": "리필 1EA",
-      "blush": "듀치크 1EA"
-    },
-    "limited_quantity": true
-  },
-  "key_features": [
-    {
-      "feature": "수분결광연출",
-      "description": "스킨케어한 듯 수분 커버"
-    },
-    {
-      "feature": "초밀착커버",
-      "description": "숨쉬듯 가벼운 사용감"
-    },
-    {
-      "feature": "피부결 개선",
-      "description": "24시간 피부결 개선 및 수분광택감 지속"
+    "product": {
+        "name": "킬 커버 메쉬 글로우 에센셜 쿠션",
+        "brand": "Clio",
+        "launch_info": {
+            "promotion": "올리브영 단독 기획",
+            "gift": "듀치크 1EA",
+            "set_contents": {
+                "main_product": "쿠션 본품 1EA",
+                "refill": "리필 1EA"
+            },
+            "limited_availability": true
+        },
+        "features": [
+            {
+                "description": "수분결광연출",
+                "benefit": "스킨케어한듯 수분커버"
+            },
+            {
+                "description": "초밀착커버",
+                "benefit": "자연스럽고 이쁜 피부 표현"
+            },
+            {
+                "description": "가벼운 사용감",
+                "benefit": "편안한 글로우"
+            }
+        ],
+        "key_points": [
+            {
+                "point": "매끈결 수분글로우",
+                "details": "번들거림 걱정 없는 요즘 글로우"
+            },
+            {
+                "point": "섬세한 메쉬로 초밀착커버",
+                "details": "피부결 및 잡티 커버"
+            },
+            {
+                "point": "스킨컨디셔닝 텍스처",
+                "details": "히알루론산 함유"
+            }
+        ],
+        "formulation": {
+            "key_ingredients": [
+                "히알루론산",
+                "프로필렌글라이콜다이벤조에이트",
+                "트라이메틸실록시실리케이트"
+            ],
+            "properties": "수분감과 스킨케어 효과"
+        },
+        "color_options": [
+            {
+                "shade": "19C 라이트",
+                "tone": "화사한 쿨 피부 추천"
+            },
+            {
+                "shade": "19N 포슬린",
+                "tone": "화사한 뉴트럴톤 피부 추천"
+            },
+            {
+                "shade": "21C 란제리",
+                "tone": "자연스러운 쿨 피부 추천"
+            },
+            {
+                "shade": "21N 리넨",
+                "tone": "자연스러운 뉴트럴톤"
+            },
+            {
+                "shade": "23N 진저",
+                "tone": "건강하고 자연스러운 뉴트럴톤 피부"
+            }
+        ],
+        "application_tips": [
+            "메쉬망이 내용물을 걸러주므로 얇게 발라야 함",
+            "내용물을 많이 묻히지 않아도 충분한 커버력 제공"
+        ],
+        "packaging": {
+            "shape": "사각 쉐입 케이스",
+            "applicator": {
+                "type": "물방울 쉐입 퍼프",
+                "features": "넓은 면과 좁은 면으로 쉽게 커버 가능"
+            }
+        },
+        "consumer_qa": [
+            {
+                "question": "메쉬가 늘어지는 것 같아요.",
+                "answer": "자연스러운 현상이며 안심하고 사용하세요."
+            },
+            {
+                "question": "내용물이 묻어있어요, 불량인가요?",
+                "answer": "자연스러운 현상이며 그대로 사용하시면 됩니다."
+            },
+            {
+                "question": "사용 꿀팁이 있나요?",
+                "answer": "내용물을 조금만 묻혀도 얇으면서도 커버력과 수분결광을 갖춘 피부를 연출할 수 있습니다."
+            }
+        ]
     }
-  ],
-  "texture": {
-    "type": "가벼운 텍스처",
-    "benefits": [
-      "편안한 글로우",
-      "자연스러운 피부 표현"
-    ]
-  },
-  "ingredients": {
-    "key_components": [
-      "히알루론산",
-      "프로필렌글라이콜다이벤조에이트",
-      "트라이메틸실록시실리케이트",
-      "글리세릴베헤네이트"
-    ],
-    "additional_info": "저분자 및 고분자 히알루론산 8종 포함"
-  },
-  "color_options": {
-    "available_shades": [
-      {
-        "shade_name": "19C 라이트",
-        "description": "화사한 쿨피부 추천"
-      },
-      {
-        "shade_name": "19N 포슬린",
-        "description": "화사한 뉴트럴톤 피부 추천"
-      },
-      {
-        "shade_name": "21C 란제리",
-        "description": "자연스러운 쿨피부 추천"
-      },
-      {
-        "shade_name": "21N 리넨",
-        "description": "자연스러운 뉴트럴톤"
-      },
-      {
-        "shade_name": "23N 진저",
-        "description": "건강하고 자연스러운 뉴트럴톤 피부"
-      }
-    ]
-  },
-  "application_tips": [
-    "메쉬망이 내용물을 걸러주므로 적은 양으로도 커버력과 수분광을 연출할 수 있습니다.",
-    "기존의 킬커버 쿠션들과 호환 가능합니다."
-  ],
-  "packaging": {
-    "shape": "사각 쉐입 케이스",
-    "puff": {
-      "type": "물방울 쉐입 퍼프",
-      "features": [
-        "넓은 면과 좁은 면을 쉽게 커버",
-        "안정적인 스트랩"
-      ]
-    }
-  },
-  "customer_inquiries": {
-    "mesh_distortion": "메쉬가 주름질 수 있으나 이는 자연스러운 현상입니다.",
-    "product_leakage": "내용물 위에 메쉬가 한 겹 덮여 있는 형태로, 자연스러운 현상입니다."
-  },
-  "clinical_tests": {
-    "duration": "24시간",
-    "results": "수분광택감 지속 확인"
-  }
 }
