@@ -3,7 +3,6 @@ import re
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
-import openai
 from kiwipiepy import Kiwi
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
@@ -136,9 +135,11 @@ def find_keywords_in_review_with_openai(reviews, keyword_groups):
     sentence_info = [] #(sentence, idx)
     for idx, review in enumerate(reviews):
         cleaned = remove_symbols(review)
-        sentence = insert_period(cleaned)
-        sentences = split_sentences(sentence)
+        #sentence = insert_period(cleaned)
+        sentences = split_sentences(cleaned)
         for s in sentences:
+            if len(s) < 4 and len(s.split()) <= 1:
+                continue
             sentence_info.append((s, idx))
 
     all_sentences = [s for s, _ in sentence_info]
@@ -347,7 +348,7 @@ def main():
 
     keyword_groups = []
     for feature in subjects["features"]:
-        keyword_groups.append([feature["keyword"]] + feature["keyword_synonyms"])
+        keyword_groups.append([feature["keyword"]] + feature["more_keywords"])
 
     analyze_review(reviews, keyword_groups)
         
