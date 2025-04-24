@@ -102,9 +102,26 @@ def get_embedding(text: str, model="text-embedding-3-small") -> list:
     )
     return response.data[0].embedding
 
+def batch_get_embeddings(text_list: list[str], model="text-embedding-3-small", batch_size = 50) -> list:
+    all_embeddings = []
+
+    for i in range(0, len(text_list), batch_size):
+        batch = text_list[i:i+batch_size]
+        response = client.embeddings.create(
+            input=batch,
+            model=model
+        )
+        batch_embeddings = [item.embedding for item in response.data]
+        all_embeddings.extend(batch_embeddings)
+    return all_embeddings
+
 def cosine_similarity(vec1, vec2):
     vec1, vec2 = np.array(vec1), np.array(vec2)
-    return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return np.dot(vec1, vec2) / (norm1 * norm2)
 
 def find_keywords_in_review_with_openai(reviews, keyword_groups):
     keyword_to_reviews = defaultdict(set)
@@ -116,29 +133,34 @@ def find_keywords_in_review_with_openai(reviews, keyword_groups):
         keyword_vecs[main_kw] = [get_embedding(kw) for kw in group]
         keyword_dict[main_kw] = group[:]
 
+    sentence_info = [] #(sentence, idx)
     for idx, review in enumerate(reviews):
         cleaned = remove_symbols(review)
         sentence = insert_period(cleaned)
         sentences = split_sentences(sentence)
+        for s in sentences:
+            sentence_info.append((s, idx))
 
-        for sentence in sentences:
-            sentence_vec = get_embedding(sentence)
-            
-            scores = [] #각 키워드의 맥스값을 저장했다가, 마지막에 그중 가장 큰 값을 가지는 키워드와 매칭.
-            matched = [] #최종 매칭
-            for main_kw, vec_list in keyword_vecs.items():
-                max_score = max([cosine_similarity(vec, sentence_vec) for vec in vec_list])
-                if max_score >= 0.3:
-                    scores.append((max_score, main_kw))
-                    if any(string_match(alt_kw, sentence) for alt_kw in keyword_dict[main_kw]): #이 경우, 바로 최종 매칭에 추가.
-                        matched.append((max_score, main_kw))
-            if scores:
-                top_match = max(scores)
-                if top_match not in matched:
-                    matched.append(top_match)
-            
-            for (max_score, main_kw) in matched:
-                keyword_to_reviews[main_kw].add((sentence, round(max_score, 2), idx))
+    all_sentences = [s for s, _ in sentence_info]
+    all_embeddings = batch_get_embeddings(all_sentences)
+
+    for (sentence, idx), sentence_vec in zip(sentence_info, all_embeddings):
+
+        scores = [] #각 키워드의 맥스값을 저장했다가, 마지막에 그중 가장 큰 값을 가지는 키워드와 매칭.
+        matched = [] #최종 매칭
+        for main_kw, vec_list in keyword_vecs.items():
+            max_score = max([cosine_similarity(vec, sentence_vec) for vec in vec_list])
+            if max_score >= 0.3:
+                scores.append((max_score, main_kw))
+                if any(string_match(alt_kw, sentence) for alt_kw in keyword_dict[main_kw]): #이 경우, 바로 최종 매칭에 추가.
+                    matched.append((max_score, main_kw))
+        if scores:
+            top_match = max(scores)
+            if top_match not in matched:
+                matched.append(top_match)
+        
+        for (max_score, main_kw) in matched:
+            keyword_to_reviews[main_kw].add((sentence, round(max_score, 2), idx))
     
     return keyword_to_reviews
 
@@ -205,7 +227,7 @@ def gpt_review_filtering(reviews, keyword_groups):
             f.write(reply)
         return reviews  # fallback
 
-def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=10):
+def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=20):
     main_keywords = [group[0] for group in keyword_groups]
     filtered = []
 
@@ -286,6 +308,9 @@ def analyze_review(reviews, keyword_groups):
 
     filtered_reviews = [item["filtered"] for item in filtering_output if "filtered" in item]
     keyword_to_reviews = find_keywords_in_review_with_openai(filtered_reviews, keyword_groups)
+
+    print(keyword_to_reviews)
+    print()
 
     for keyword, review_set in keyword_to_reviews.items():
         sorted_reviews = sorted(review_set, key=lambda x: x[1], reverse=True)

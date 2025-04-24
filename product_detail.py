@@ -269,7 +269,7 @@ def gpt_highlighted_subjects(full_description):
                     "features": [
                         {{
                         "keyword": "string",
-                        "keyword_synonyms": ["string", "string", ...]
+                        "more_keywords": ["string", "string", ...]
                         "description": "string"
                         }},
                         ...
@@ -278,9 +278,8 @@ def gpt_highlighted_subjects(full_description):
 
                     조건:
                     - "keyword"는 한 단어 또는 짧은 문구로 간결하게
-                    - "keyword_synonyms" 항목은 리뷰 텍스트와의 키워드 매칭 정확도를 높이기 위한 보조 표현입니다.
-                        즉, 소비자 리뷰에서 해당 키워드와 유사한 의미로 사용될 수 있는 단어, 구어체 표현, 축약어, 마케팅 문구 등을 포함해 주세요.
-                        예: "수분광택" → ["촉촉한", "물광", "보습", "글로우"]
+                    - "more_keywords": 겹치는 단어없이, "keyword"의 반의어 하나와, 유사한 의미로 사용될 수 있는 단어 여러 개(1~4개)를 포함해 주세요.
+                        예: "수분광택" → ["건조함", "촉촉한", "보습", "글로우"]
                     - "description"은 해당 키워드가 제품에서 의미하는 기능이나 효과를 구체적으로 설명
                     - 4~7개의 주제를 제안해주세요
 
@@ -339,7 +338,7 @@ def main():
         with open("ocr_results.json", "r") as f:
             full_description = json.load(f)
 
-        gpt_summarize(full_description)
+        #gpt_summarize(full_description)
         keywords = gpt_highlighted_subjects(full_description)
         if keywords:
             print(keywords)
