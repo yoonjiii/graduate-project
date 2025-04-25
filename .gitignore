@@ -1,4 +1,6 @@
 .env
-venv_ocr
+venv
+venv_310
 combined_images
 archieve
+__pycache__/
