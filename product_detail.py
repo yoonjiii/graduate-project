@@ -5,7 +5,7 @@ import re
 from PIL import Image, ImageFont
 from io import BytesIO
 import requests
-#from paddleocr import PaddleOCR, draw_ocr
+from paddleocr import PaddleOCR, draw_ocr
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
@@ -32,7 +32,7 @@ def validate_image_sequence(product):
     images = product["images"]
 
     # gif 파일 제외
-    jpg_images = [img for img in images if not urlparse(img).path.lower().endswith(".gif")]
+    jpg_images = [img for img in images if not urlparse(img).path.lower().endswith(".gif") or not urlparse(img).path.lower().endswith(".webp")]
     product["images"] = jpg_images
     print(f"{len(images)-len(jpg_images)} gif images deleted.")
 
@@ -67,7 +67,6 @@ def validate_image_sequence(product):
             print(f"- 중복된 crop 번호: {sorted(set(duplicates))}")
 
     return product, accepted
-
 
 def combine_crop_images(product, dirname):
     images = product["images"]
@@ -193,7 +192,8 @@ def extract_text(dirname, min_height = 18, draw_vis = True):
 
     full_description = token_join(results)
 
-    with open("ocr_results.json", "w", encoding="utf-8") as f:
+    json_filename = "ocr_results_" + dirname + ".json"
+    with open(json_filename, "w", encoding="utf-8") as f:
         json.dump(full_description, f, ensure_ascii=False, indent=4)
     return full_description
 
@@ -205,7 +205,7 @@ def token_join(product_detail):
             full_description[image] = " ".join(tokens)
     return full_description
 
-def gpt_summarize(full_description):
+def gpt_summarize(full_description, product_N):
     text = ""
     for k, v in full_description.items():
         text += v + " "
@@ -219,7 +219,7 @@ def gpt_summarize(full_description):
             {
                 "role": "user",
                 "content": f"""
-                    다음은 화장품 상세 설명입니다. 정보성있는 결과로 정리 및 구조화한 후, json형식으로 답변을 제공해주세요.
+                    다음은 화장품 상세 설명입니다. 제품의 주요 특징을 최대 3문장으로 요약해주세요.
                     {text}
                     """
             }
@@ -228,26 +228,13 @@ def gpt_summarize(full_description):
     )
 
     reply = response.choices[0].message.content
-
-    # 코드 블록 마크다운 제거
-    if reply.startswith("```json"):
-        reply = reply.lstrip("```json").strip()
-    if reply.endswith("```"):
-        reply = reply.rstrip("```").strip()
-    
     print(reply)
+    return reply
 
-    try:
-        json_result = json.loads(reply)
-        with open("product_description.json", "w", encoding="utf-8") as f:
-            json.dump(json_result, f, ensure_ascii=False, indent=4)
-        print(f"응답이 JSON 파일로 저장되었습니다.")
-    except json.JSONDecodeError as e:
-        with open("product_description_raw.txt", "w", encoding="utf-8") as f:
-            f.write(reply)
-        print(f"응답이 TXT 파일로 저장되었습니다.")
 
-def gpt_highlighted_subjects(full_description):
+def gpt_highlighted_subjects(full_description, product_N):
+    summary = gpt_summarize(full_description, product_N)
+
     text = ""
     for k, v in full_description.items():
         text += v + " "
@@ -302,14 +289,18 @@ def gpt_highlighted_subjects(full_description):
 
     try:
         json_result = json.loads(reply)
-        with open("highlighted_subjects.json", "w", encoding="utf-8") as f:
+        json_result["summary"] = summary
+
+        json_filename = "highlighted_subjects_"+product_N+".json"
+        with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(json_result, f, ensure_ascii=False, indent=4)
         print(f"응답이 JSON 파일로 저장되었습니다.")
 
         keywords = [item['keyword'] for item in json_result.get('features', [])]
         return keywords
     except json.JSONDecodeError as e:
-        with open("highlighted_subjects.txt", "w", encoding="utf-8") as f:
+        txt_filename = "highlighted_subjects_"+product_N+".txt"
+        with open(txt_filename, "w", encoding="utf-8") as f:
             f.write(reply)
         print(f"GPT의 요약 응답이 JSON 형식에 맞지 않아, 리뷰 분석을 수행할 수 없습니다.")
         return None
@@ -322,24 +313,22 @@ def main():
     product_N = "product_0"
     filename = product_N + ".json"
 
-    with open(filename, "r") as f:
+    with open("data/"+filename, "r") as f:
         product = json.load(f)
-    
+
     accepted = True
     # Data validation
-    #product, accepted = validate_image_sequence(product)
+    product, accepted = validate_image_sequence(product)
     if accepted:
         # Data preprocissing
-        #combine_crop_images(product, product_N)
-        #download_images(product, product_N)
-        # extract_text
-        #full_description = extract_text(product_N)
+        # combine_crop_images(product, product_N)
+        download_images(product, product_N)
+        full_description = extract_text(product_N)
 
-        with open("ocr_results.json", "r") as f:
-            full_description = json.load(f)
+        # with open(f"ocr_results_{product_N}.json", "r") as f:
+        #     full_description = json.load(f)
 
-        #gpt_summarize(full_description)
-        keywords = gpt_highlighted_subjects(full_description)
+        keywords = gpt_highlighted_subjects(full_description, product_N)
         if keywords:
             print(keywords)
 
@@ -348,3 +337,5 @@ def main():
         
 if __name__ == "__main__":
     main()
+
+

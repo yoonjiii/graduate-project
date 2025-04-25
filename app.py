@@ -4,6 +4,7 @@ from review_utils import gpt_review_filtering_batched, find_keywords_in_review_w
 import time
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 def render_review_with_tooltip(sentence, full_review, score, idx):
     tooltip_html = f"""
@@ -90,68 +91,94 @@ def render_analysis_section(keyword, description, sentiments, reviews):
         st.pyplot(fig)
     st.markdown("---")
 
+def render_summary(summary_text):
+    st.markdown("""
+        <div style="
+            background-color: #fef9f4;
+            border-left: 6px solid #F70971;
+            padding: 1rem 1.7rem;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        ">
+            <h4 style="color: #F70971; margin-top: 0;">📌 제품 요약</h4>
+            <p style="font-size: 1.05rem; line-height: 1.6; color: #333;">
+                {summary}
+            </p>
+        </div>
+    """.format(summary=summary_text), unsafe_allow_html=True)
+
 st.set_page_config(page_title="화장품 리뷰 비교 분석", layout="wide")
 
 st.title("💄 화장품 제품 설명 vs 사용자 리뷰 비교 분석")
 st.markdown("**제조사 설명이 실제 사용자 리뷰에서 어떻게 드러나는지를 키워드 중심으로 분석합니다.**")
 
-# 리뷰 업로드
-uploaded_file = st.file_uploader("📁 리뷰 파일 업로드 (JSON)", type="json")
+selected_product = None
 
-# 키워드 파일
-with open("highlighted_subjects.json", "r", encoding="utf-8") as f:
-    keyword_data = json.load(f)
+col1, col2, col3, col4 = st.columns(4)
 
-# st.markdown("### 🌟 제품 주요 특성")
-# for item in keyword_data["features"]:
-#     with st.container():
-#         st.markdown(f"#### 🔹 {item['keyword']}")
-#         st.markdown(f"- **설명:** {item['description']}")
-#         st.markdown(f"- **연관 키워드:** {', '.join(item['more_keywords'][1:])}")
-#         st.markdown("---")
+with open(f"data/full_dataset.json", "r", encoding="utf-8") as f:
+    products = json.load(f)
 
-# st.markdown("### 💎 주요 특성 카드 뷰")
-# cols = st.columns(2)
-# for i, item in enumerate(keyword_data["features"]):
-#     with cols[i % 2]:
-#         st.markdown(f"""
-#         #### 🔹 {item['keyword']}
-#         - **설명:** {item['description']}
+if "selected_product" not in st.session_state:
+    st.session_state.selected_product = None
 
-#         - **연관 키워드:** {", ".join(item['more_keywords'][1:])}
-#         """)
+with col1:
+    st.image(products["product_0"]["image"], width = 300)
+    if st.button(f"🧴 {products['product_0']['product_name']}", use_container_width=True):
+        st.session_state.selected_product = "product_0"
+    st.markdown(f"**{products['product_0']['price']}**")
 
+with col2:
+    st.image(products["product_1"]["image"], width = 300)
+    if st.button(f"🧴 {products['product_1']['product_name']}", use_container_width=True):
+        st.session_state.selected_product = "product_1"
+    st.markdown(f"**{products['product_1']['price']}**")
 
-if uploaded_file:
-    product = json.load(uploaded_file)
-    reviews = [r["content"] for r in product["reviews"]]
-    st.success(f"{len(reviews)}개의 리뷰가 로드되었습니다.")
+selected_product = st.session_state.selected_product
+
+if selected_product:
+    dataset = selected_product
+    st.divider()
+    st.subheader(f"📦 {products[selected_product]['product_name']} 제품 요약")
+
+    with open(f"data/{dataset}.json", "r", encoding="utf-8") as f:
+        product = json.load(f)
+        reviews = [r["content"] for r in product["reviews"]]
+        st.success(f"{len(reviews)}개의 리뷰가 로드되었습니다.")
+
+    # 키워드 파일
+    json_filename = "highlighted_subjects_"+dataset+".json"
+    with open(json_filename, "r", encoding="utf-8") as f:
+        keyword_data = json.load(f)
+    summary = keyword_data['summary']
     keyword_groups = [[item["keyword"]] + item["more_keywords"] for item in keyword_data["features"]]
 
-    if st.button("리뷰 분석 시작"):
-        with st.spinner("GPT 전처리 중...(약 10분 소요)"):
-            #filtering_output = gpt_review_filtering_batched(reviews, keyword_groups)
+    if "start_analysis" not in st.session_state:
+        st.session_state.start_analysis = False
 
-            time.sleep(5)
-            with open("review_filtering.json", "r") as f:
+    if st.button("🔍 리뷰 분석 시작"):
+        st.session_state.start_analysis = True
+    
+    if st.session_state.start_analysis:
+        with st.spinner("GPT 전처리 중...(약 10분 소요)"):
+            #filtering_output = gpt_review_filtering_batched(reviews, keyword_groups, dataset)
+
+            with open(f"review_filtering_{dataset}.json", "r") as f:
                 filtering_output = json.load(f)
+
             filtered_reviews = [f["filtered"] for f in filtering_output if "filtered" in f]
+            original_reviews = [o["original"] for o in filtering_output if "original" in o]
 
         with st.spinner("임베딩 및 키워드 매칭 중..."):
             keyword_to_reviews = find_keywords_in_review_with_openai(filtered_reviews, keyword_groups)
-            # 출력
-            # for keyword, matched_reviews in keyword_to_reviews.items():
-            #     st.subheader(f"🔍 키워드: {keyword} (총 {len(matched_reviews)} 문장)")
-            #     for i, (sentence, score, idx) in enumerate(sorted(matched_reviews, key=lambda x: x[1], reverse=True)):
-            #         st.markdown(f"{i+1}. **({score})** 리뷰 #{idx} - {sentence}")
 
         with st.spinner("키워드 별 리뷰 분석/요약 중..."):
             keyword_stats = analyze_sentiment_by_keyword(keyword_to_reviews)
             i = 0
+            render_summary(summary)
             for kw, sentiments in keyword_stats.items():
-                render_analysis_section(kw, keyword_data['features'][i]['description'], sentiments, reviews)
-                i+=1
+                render_analysis_section(kw, keyword_data['features'][i]['description'], sentiments, original_reviews)
+                i += 1
 
         st.success("완료!")
-
-        

@@ -123,6 +123,7 @@ def cosine_similarity(vec1, vec2):
     return np.dot(vec1, vec2) / (norm1 * norm2)
 
 def find_keywords_in_review_with_openai(reviews, keyword_groups):
+    print("find keywords in review with openai")
     keyword_to_reviews = defaultdict(set)
     keyword_vecs = {}
     keyword_dict = {}
@@ -166,6 +167,7 @@ def find_keywords_in_review_with_openai(reviews, keyword_groups):
     return keyword_to_reviews
 
 def review_sentiment_analysis(keyword_to_reviews, keywords):
+    print("review sentiment analysis")
     keyword_stats = {kw: {"positive": [], "negative": [], "neutral": []} for kw in keywords}
     for keyword, matched in keyword_to_reviews.items():
         for sentence, idx in matched:
@@ -173,7 +175,7 @@ def review_sentiment_analysis(keyword_to_reviews, keywords):
             keyword_stats[keyword][sentiment].append((sentence, idx))
     return keyword_stats
 
-def gpt_review_filtering(reviews, keyword_groups):
+def gpt_review_filtering(reviews, product_N, keyword_groups):
     main_keywords = [group[0] for group in keyword_groups]
 
     response = client.chat.completions.create(
@@ -218,17 +220,20 @@ def gpt_review_filtering(reviews, keyword_groups):
     try:
         filtered = json.loads(reply)
 
-        with open("review_filtering.json", "w", encoding="utf-8") as f:
+        json_filename = "review_filtering_"+product_N+".json"
+        with open(json_filename, "w", encoding="utf-8") as f:
             json.dump(filtered, f, ensure_ascii=False, indent=4)
 
         return filtered
     except Exception as e:
         print("리뷰필터링 - GPT 응답 파싱 실패:", e)
-        with open("review_filtering.txt", "w", encoding="utf-8") as f:
+        txt_filename = "review_filtering_"+product_N+".txt"
+        with open(txt_filename, "w", encoding="utf-8") as f:
             f.write(reply)
         return reviews  # fallback
 
-def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=20):
+def gpt_review_filtering_batched(reviews, keyword_groups, product_N, batch_size=20):
+    print("gpt review filtering")
     main_keywords = [group[0] for group in keyword_groups]
     filtered = []
 
@@ -245,7 +250,7 @@ def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=20):
                 {
                     "role": "user",
                     "content": f"""
-                        아래는 전처리가 필요한 소비자 리뷰 목록입니다. 각 리뷰마다 다음 작업을 수행해 주세요:
+                        아래는 전처리가 필요한 소비자들 리뷰 목록이며, 불필요한 내용을 조금만 필터링하려고 합니다. 각 리뷰마다 다음 작업을 수행해 주세요:
                         **주의: {main_keywords}에 있는 키워드와 연관된 내용이 누락되지 않도록 한다.**
                         1. 제품과 무관한 내용(기대, 가격, 배송 등)을 제외
                         2. 오탈자 및 문장부호 오류 수정
@@ -253,15 +258,15 @@ def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=20):
                         4. 아래 형식으로 출력:
                         ```json
                         [
-                          {{
+                            {{
                             "original": "원본 리뷰",
                             "filtered": "필요 문장만 남은 내용"
-                          }},
-                          ...
+                            }},
+                            ...
                         ]
                         ```
                         리뷰 목록: {batch}
-                    """
+                        """
                 }
             ],
             temperature=0.5
@@ -284,8 +289,8 @@ def gpt_review_filtering_batched(reviews, keyword_groups, batch_size=20):
             # with open(f"review_filtering_batch_{i}.txt", "w", encoding="utf-8") as f:
             #     f.write(reply)
             # filtered.extend([{"original": r, "filtered": r} for r in batch])  # fallback
-
-    with open("review_filtering.json", "w", encoding="utf-8") as f:
+    json_filename = "review_filtering_"+product_N+".json"
+    with open(json_filename, "w", encoding="utf-8") as f:
         json.dump(filtered, f, ensure_ascii=False, indent=4)
 
     return filtered
@@ -305,9 +310,52 @@ def analyze_sentiment_by_keyword(keyword_to_reviews):
 
     return keyword_stats
 
+def find_keywords_in_review(): #SBERT 성능
+    keyword_groups = [
+        ['수분광택', '촉촉한', '물광', '보습', '글로우'],
+        ['초밀착커버', '섬세한 커버', '완벽한 커버', '잡티 커버'],
+        ['스킨케어 효과', '스킨케어한 듯', '피부 컨디셔닝', '피부 개선'],
+        ['가벼운 사용감', '편안한 텍스처', '숨쉬듯 가벼운', '가벼운 쿠션'],
+        ['다양한 컬러 옵션', '컬러 선택', '피부톤 맞춤', '컬러 라이브러리'],
+        ['24시간 지속', '지속력', '오랜 지속', '롱웨어'],
+        ['편리한 사용', '쉬운 적용', '사각 쉐입 케이스', '물방울 퍼프']
+    ]
+
+    reviews = [
+        "커버력 좋은 제형이라서 부분적인 잡티 잘 가려지네요!",
+        "기존 제품 사용하면서 붉은기 커버가 안되는게 살짝 아쉬웠는데, 상아빛 뉴트럴 아이보리컬러라 붉은기 커버 됩니다...!"
+    ]
+
+    sbert_model = SentenceTransformer('snunlp/KR-SBERT-V40K-klueNLI-augSTS')
+    keyword_to_reviews = defaultdict(set)
+    keyword_vecs = {}
+    keyword_dict = {}
+    for group in keyword_groups:
+        main_kw = group[0]
+        keyword_vecs[main_kw] = [sbert_model.encode(kw, normalize_embeddings=True) for kw in group]
+        keyword_dict[main_kw] = group[1:]
+
+    for idx, review in enumerate(reviews):
+        cleaned = remove_symbols(review)
+        sentence = insert_period(cleaned)
+        sentences = split_sentences(sentence)
+        
+        for sentence in sentences:
+            sentence_vec = sbert_model.encode(sentence, normalize_embeddings=True)
+
+            for main_kw, vec_list in keyword_vecs.items():
+                scores = [util.cos_sim(vec, sentence_vec).item() for vec in vec_list]
+                print(keyword_dict[main_kw])
+                print(scores)
+                
+    for kw in keyword_to_reviews:
+        keyword_to_reviews[kw] = sorted(keyword_to_reviews[kw], key=lambda x: x[1], reverse=True)
+    print(keyword_to_reviews)
+    return keyword_to_reviews
+
 def main():
     # 리뷰 불러오기
-    product_N = "product_0"
+    product_N = "product_1"
     filename = product_N + ".json"
 
     with open(filename, "r") as f:
@@ -318,12 +366,13 @@ def main():
         reviews.append(review_obj["content"])
     
     # 키워드 불러오기
-    with open("highlighted_subjects.json", "r") as f:
+    json_filename = "highlighted_subjects_"+product_N+".json"
+    with open(json_filename, "r") as f:
         keyword_data = json.load(f)
 
     keyword_groups = [[item["keyword"]] + item["keyword_synonyms"] for item in keyword_data["features"]]
 
-    filtering_output = gpt_review_filtering_batched(reviews, keyword_groups)
+    filtering_output = gpt_review_filtering_batched(reviews, keyword_groups, product_N)
 
     # with open("review_filtering.json", "r") as f:
     #     filtering_output = json.load(f)
